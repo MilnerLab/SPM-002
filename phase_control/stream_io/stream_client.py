@@ -100,16 +100,19 @@ class SpectrometerStreamClient:
         if self._proc is not None:
             raise RuntimeError("Acquisition process is already running.")
 
+        # __file__ = .../SPM-002/phase_control/stream_io/stream_client.py
+        # parents[2] = .../SPM-002  (repo root)
         repo_root = Path(__file__).resolve().parents[2]
-        script_path = repo_root / "acquisition" / "json_stream_server.py"
 
+        # Start as module: acquisition.json_stream_server
         proc = subprocess.Popen(
-            [self.python32_path, script_path],
+            [self.python32_path, "-m", "acquisition.json_stream_server"],
+            cwd=str(repo_root),          # wichtig: damit 'acquisition' Paket sichtbar ist
             stdout=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,   # you can log/debug this if needed
-            text=True,                # line-based text mode
-            bufsize=1,                # line-buffered
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
         )
         self._proc = proc
 
@@ -119,12 +122,11 @@ class SpectrometerStreamClient:
         # Read meta line
         meta_line = proc.stdout.readline()
         if not meta_line:
-            # Try to collect stderr to give a helpful message
             stderr_msg = ""
             if proc.stderr is not None:
                 stderr_msg = proc.stderr.read()
             raise RuntimeError(
-                f"Acquisition process terminated before sending meta data.\n"
+                "Acquisition process terminated before sending meta data.\n"
                 f"stderr:\n{stderr_msg}"
             )
 
@@ -135,7 +137,7 @@ class SpectrometerStreamClient:
         self._meta = StreamMeta(
             device_index=meta_raw["device_index"],
             num_pixels=meta_raw["num_pixels"],
-            wavelengths=meta_raw["wavelengths"],  # may be None
+            wavelengths=meta_raw["wavelengths"],
             exposure_ms=meta_raw["exposure_ms"],
             average=meta_raw["average"],
             dark_subtraction=meta_raw["dark_subtraction"],
