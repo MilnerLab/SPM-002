@@ -1,8 +1,13 @@
 # phase_control/stream_io/frame_buffer.py
+from multiprocessing import Value
 import threading
 from typing import Optional
 
-from .models import StreamFrame
+import numpy as np
+
+from phase_control.domain.models import Spectrogram
+
+from .models import StreamFrame, StreamMeta
 
 
 class FrameBuffer:
@@ -13,18 +18,29 @@ class FrameBuffer:
     - get_latest(): return the most recent frame or None if nothing yet
     """
 
-    def __init__(self) -> None:
+    def __init__(self, meta: StreamMeta) -> None:
         self._lock = threading.Lock()
         self._latest: Optional[StreamFrame] = None
+        self.meta: StreamMeta = meta
 
     def update(self, frame: StreamFrame) -> None:
         """Store a new frame, overwriting any previous frame."""
         with self._lock:
             self._latest = frame
 
-    def get_latest(self) -> Optional[StreamFrame]:
+    def get_latest(self) -> Spectrogram:
         """
         Return the most recent frame, or None if no frame has been stored yet.
         """
+        if self._latest is None:
+            raise ValueError("No frame detected.")
         with self._lock:
-            return self._latest
+            return self._generate_Spectrogram(self._latest)
+
+    def _generate_Spectrogram(self, frame: StreamFrame) -> Spectrogram:
+        if self.meta.wavelengths is not None:
+            return Spectrogram.from_raw_data(self.meta.wavelengths, frame.counts)
+        else:
+            raise ValueError("Wavelengths not readable.")
+        
+        

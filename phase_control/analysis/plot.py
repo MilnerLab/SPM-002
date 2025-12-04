@@ -9,7 +9,6 @@ from phase_control.stream_io import StreamMeta, FrameBuffer
 
 
 def run_plot(
-    meta: StreamMeta,
     buffer: FrameBuffer,
     stop_event: threading.Event,
 ) -> None:
@@ -22,7 +21,7 @@ def run_plot(
     - updates the plot until the window is closed or stop_event is set
     """
     # X-axis from wavelengths if available, otherwise pixel indices
-    if meta.wavelengths is not None:
+    if buffer.meta.wavelengths is not None:
         x = np.array(meta.wavelengths, dtype=float)
         x_label = "Wavelength [nm]"
     else:

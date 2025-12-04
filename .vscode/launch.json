@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug c2t_calculation",
+      "name": "Debug",
       "type": "python",
       "request": "launch",
-      "module": "apps.c2t_calculation.script",
+      "module": "phase_control.Demo.script",
       "console": "integratedTerminal",
       "justMyCode": true
     },

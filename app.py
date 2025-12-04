@@ -45,7 +45,7 @@ def main() -> None:
     client = SpectrometerStreamClient()
     meta: StreamMeta = client.start()
 
-    buffer = FrameBuffer()
+    buffer = FrameBuffer(meta)
     stop_event = threading.Event()
 
     reader = threading.Thread(
@@ -58,7 +58,7 @@ def main() -> None:
 
     try:
         # Run plotting in the main thread
-        run_plot(meta=meta, buffer=buffer, stop_event=stop_event)
+        run_plot(buffer=buffer, stop_event=stop_event)
     finally:
         # Tell reader to stop and clean up
         stop_event.set()
