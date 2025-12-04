@@ -1,6 +1,7 @@
 # stream_io/stream_client.py
 import json
 import os
+from pathlib import Path
 import subprocess
 from dataclasses import dataclass
 from typing import Iterator, List, Optional
@@ -99,8 +100,8 @@ class SpectrometerStreamClient:
         if self._proc is not None:
             raise RuntimeError("Acquisition process is already running.")
 
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        script_path = os.path.join(repo_root, "acquisition", "json_stream_server.py")
+        repo_root = Path(__file__).resolve().parents[2]
+        script_path = repo_root / "acquisition" / "json_stream_server.py"
 
         proc = subprocess.Popen(
             [self.python32_path, script_path],
