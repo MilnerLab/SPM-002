@@ -2,7 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from stream_io import SpectrometerStreamClient
+from phase_control.stream_io.stream_client import SpectrometerStreamClient
+
 
 
 def run_plot() -> None:
