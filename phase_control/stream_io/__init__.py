@@ -1,17 +1,11 @@
-# stream_io/__init__.py
-"""
-Client-side streaming utilities to receive spectrometer data
-from the 32-bit acquisition process.
-"""
-
-from .stream_client import (
-    SpectrometerStreamClient,
-    StreamMeta,
-    StreamFrame,
-)
+# phase_control/stream_io/__init__.py
+from .models import StreamMeta, StreamFrame
+from .frame_buffer import FrameBuffer
+from .stream_client import SpectrometerStreamClient
 
 __all__ = [
-    "SpectrometerStreamClient",
     "StreamMeta",
     "StreamFrame",
+    "FrameBuffer",
+    "SpectrometerStreamClient",
 ]

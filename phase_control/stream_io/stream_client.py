@@ -1,64 +1,50 @@
-# stream_io/stream_client.py
+# phase_control/stream_io/stream_client.py
+"""
+Low-level stream client for the 32-bit acquisition process.
+
+Responsibilities:
+- start the 32-bit Python process running `acquisition.json_stream_server`
+- read the initial 'meta' JSON object
+- provide an iterator over 'frame' JSON objects
+- stop/terminate the process when done
+
+This module does NOT:
+- start any threads
+- manage any buffers or queues
+"""
+
 import json
 import os
-from pathlib import Path
 import subprocess
-from dataclasses import dataclass
-from typing import Iterator, List, Optional
+from pathlib import Path
+from typing import Iterator, Optional
 
 from acquisition.config import PYTHON32_PATH
-
-
-@dataclass
-class StreamMeta:
-    """
-    Static information about the spectrometer stream.
-    """
-    device_index: int
-    num_pixels: int
-    wavelengths: Optional[List[float]]
-    exposure_ms: float
-    average: int
-    dark_subtraction: int
-
-
-@dataclass
-class StreamFrame:
-    """
-    One spectrum frame received from the acquisition process.
-    """
-    timestamp: str          # ISO-8601 string
-    device_index: int
-    counts: List[int]
+from .models import StreamMeta, StreamFrame
 
 
 class SpectrometerStreamClient:
     """
-    Client for the 32-bit acquisition JSON stream.
-
-    Responsibilities:
-    - start the 32-bit Python acquisition process
-    - read a single 'meta' JSON object
-    - provide an iterator over 'frame' JSON objects
-    - handle clean shutdown of the child process
-
-    This class does NOT:
-    - do any analysis
-    - do any plotting
+    Stream client for the JSON output of the 32-bit acquisition process.
     """
 
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self, python32_path: Optional[str] = None) -> None:
         """
         Parameters
         ----------
         python32_path:
-            Path to the 32-bit Python interpreter. If None, the environment
-            variable 'PYTHON32_PATH' is used. If that is also missing, you
-            must adapt the default path below.
+            Path to the 32-bit Python interpreter.
+
+            Resolution priority:
+            1. explicit python32_path argument
+            2. environment variable 'PYTHON32_PATH'
+            3. acquisition.config.PYTHON32_PATH
         """
-        self.python32_path = PYTHON32_PATH
+        self.python32_path = (
+            python32_path
+            or os.environ.get("PYTHON32_PATH")
+            or PYTHON32_PATH
+        )
 
         self._proc: Optional[subprocess.Popen[str]] = None
         self._meta: Optional[StreamMeta] = None
@@ -69,57 +55,47 @@ class SpectrometerStreamClient:
 
     @property
     def meta(self) -> StreamMeta:
+        """
+        Static meta information. Only valid after start() has been called.
+        """
         if self._meta is None:
-            raise RuntimeError("StreamMeta is not available. Did you call start()? "
-                               "Or are you using the context manager?")
+            raise RuntimeError("StreamMeta not available. Did you call start()?")
+
         return self._meta
 
-    @property
-    def is_running(self) -> bool:
-        return self._proc is not None and self._proc.poll() is None
-
     # ------------------------------------------------------------------ #
-    # Context manager
+    # Lifecycle
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> "SpectrometerStreamClient":
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self.stop()
-
-    # ------------------------------------------------------------------ #
-    # Process management
-    # ------------------------------------------------------------------ #
-
-    def start(self) -> None:
+    def start(self) -> StreamMeta:
         """
-        Start the 32-bit acquisition process and read the initial meta frame.
+        Start the 32-bit acquisition process and read the 'meta' frame.
+
+        Returns
+        -------
+        StreamMeta
+            Static meta information describing the stream.
         """
         if self._proc is not None:
             raise RuntimeError("Acquisition process is already running.")
 
-        # __file__ = .../SPM-002/phase_control/stream_io/stream_client.py
-        # parents[2] = .../SPM-002  (repo root)
-        repo_root = Path(__file__).resolve().parents[2]
+        repo_root = Path(__file__).resolve().parents[2]  # .../SPM-002
 
-        # Start as module: acquisition.json_stream_server
         proc = subprocess.Popen(
             [self.python32_path, "-m", "acquisition.json_stream_server"],
-            cwd=str(repo_root),          # wichtig: damit 'acquisition' Paket sichtbar ist
+            cwd=str(repo_root),          # acquisition package visible for -m
             stdout=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1,
+            bufsize=1,                   # line-buffered
         )
         self._proc = proc
 
         if proc.stdout is None:
             raise RuntimeError("Failed to open stdout from acquisition process.")
 
-        # Read meta line
+        # Read one line (meta)
         meta_line = proc.stdout.readline()
         if not meta_line:
             stderr_msg = ""
@@ -137,15 +113,47 @@ class SpectrometerStreamClient:
         self._meta = StreamMeta(
             device_index=meta_raw["device_index"],
             num_pixels=meta_raw["num_pixels"],
-            wavelengths=meta_raw["wavelengths"],
+            wavelengths=meta_raw["wavelengths"],  # may be None
             exposure_ms=meta_raw["exposure_ms"],
             average=meta_raw["average"],
             dark_subtraction=meta_raw["dark_subtraction"],
         )
 
+        return self._meta
+
+    def frames(self) -> Iterator[StreamFrame]:
+        """
+        Iterate over frames from the acquisition process.
+
+        This is a blocking iterator. It should normally be called from a
+        background thread. It does NOT do any buffering itself.
+        """
+        proc = self._proc
+        if proc is None or proc.stdout is None:
+            raise RuntimeError("Acquisition process is not running. Call start() first.")
+
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                frame_raw = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            if frame_raw.get("type") != "frame":
+                continue  # ignore meta or other messages
+
+            yield StreamFrame(
+                timestamp=frame_raw["timestamp"],
+                device_index=frame_raw["device_index"],
+                counts=frame_raw["counts"],
+            )
+
     def stop(self) -> None:
         """
-        Stop the acquisition process if it is running.
+        Terminate the acquisition process if it is still running.
         """
         proc = self._proc
         self._proc = None
@@ -153,44 +161,9 @@ class SpectrometerStreamClient:
         if proc is None:
             return
 
-        if proc.poll() is not None:
-            # already exited
-            return
-
-        proc.terminate()
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-
-    # ------------------------------------------------------------------ #
-    # Streaming API
-    # ------------------------------------------------------------------ #
-
-    def frames(self) -> Iterator[StreamFrame]:
-        """
-        Iterate over frames from the acquisition process.
-
-        This generator yields StreamFrame objects until the acquisition
-        process finishes or an error occurs.
-        """
-        if self._proc is None or self._proc.stdout is None:
-            raise RuntimeError("Acquisition process is not running. Call start() first "
-                               "or use 'with SpectrometerStreamClient() as client:'.")
-
-        proc = self._proc
-        for line in proc.stdout: # type: ignore
-            line = line.strip()
-            if not line:
-                continue
-
-            frame_raw = json.loads(line)
-            if frame_raw.get("type") != "frame":
-                # ignore other messages
-                continue
-
-            yield StreamFrame(
-                timestamp=frame_raw["timestamp"],
-                device_index=frame_raw["device_index"],
-                counts=frame_raw["counts"],
-            )
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
