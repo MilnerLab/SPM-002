@@ -67,4 +67,4 @@ class FitParameter:
 
 @dataclass
 class AnalysisConfig(FitParameter):
-    wavelength_range: Range[Length] = Range(Length(802, Prefix.NANO), Length(806, Prefix.NANO))
+    wavelength_range: Range[Length] = Range(Length(800, Prefix.NANO), Length(805, Prefix.NANO))

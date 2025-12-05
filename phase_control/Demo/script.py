@@ -1,7 +1,8 @@
 from pathlib import Path
+import time
 from matplotlib import pyplot as plt
 
-from base_lib.models import Angle, Length, Prefix, Range
+from base_lib.models import Angle, Length, Prefix, Range, Time
 from phase_control.Demo.data_io.data_loader import load_spectra
 from phase_control.analysis.config import AnalysisConfig
 from phase_control.analysis.phase_corrector import PhaseCorrector
@@ -20,8 +21,13 @@ spectra_cut = [s.cut(config.wavelength_range) for s in spectra]
 
 phase_tracker = PhaseTracker(config)
 phase_corrector = PhaseCorrector()
-ell = ElliptecRotator()
+#ell = ElliptecRotator()
 phases = []
+plt.ion()
+fig, ax = plt.subplots()
+fig.tight_layout()
+fig.canvas.draw()
+fig.canvas.flush_events()
 
 for s in spectra:
     phase_tracker.update(s)
@@ -31,13 +37,23 @@ for s in spectra:
     else:
         delta = Angle(0)
         
-    ell.rotate(delta)
+    #ell.rotate(delta)
+    time.sleep(5.0)
+    print("Rotated:", delta)
 
-fig, ax = plt.subplots(figsize=(8, 4))
-#plot_spectrogram(ax, spectra_cut[0])
-#plot_model(ax, spectra_cut[0], phase_tracker._config)
+    ax.clear()
+    plot_spectrogram(ax, s)
+    plot_model(ax, s.wavelengths_nm, phase_tracker._config)
+
+    ax.relim()
+    ax.autoscale_view()
+
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+
+ax.clear()
 plot_phase(ax, phases)
 fig.tight_layout()
-plt.show()
 
 

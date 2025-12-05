@@ -11,7 +11,6 @@ class PhaseCorrector:
     
     correction_phase: Optional[Angle] = field(default=None, init=False)
     _starting_phase: Optional[Angle] = field(default=None, init=False, repr=False)
-    _last_moved_phase: Optional[Angle] = field(default=None, init=False, repr=False)
 
     def update(self, phase: Angle) -> Angle:
         
@@ -19,14 +18,11 @@ class PhaseCorrector:
             self._starting_phase = phase
             self.correction_phase = Angle(0)
         else:
-            if self._last_moved_phase is None:
-                self.correction_phase = Angle(phase - self._starting_phase)
-                self._last_moved_phase = phase
+            if np.abs(Angle(phase - self._starting_phase)) > Angle(10, AngleUnit.DEG):
+                    self.correction_phase = Angle(phase - self._starting_phase)
+                    print("Correction needed!")
             else:
-                if np.abs(Angle(phase - self._last_moved_phase)) > Angle(2, AngleUnit.DEG):
-                    self.correction_phase = Angle(phase - self._last_moved_phase)
-                else:
-                    self.correction_phase = Angle(0)
+                self.correction_phase = Angle(0)
 
         return self.correction_phase
 

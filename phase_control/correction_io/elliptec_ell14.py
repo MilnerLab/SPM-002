@@ -96,7 +96,7 @@ class ElliptecRotator:
     def _move_relative(self, angle: Angle) -> None:
         d = Decimal(angle.Deg)
         self._device.MoveRelative(d)
-        time.sleep(1.0)
+        time.sleep(2.0)
 
     def _validate_new_delta_angle(self, new_delta: Angle) -> None:
         
@@ -105,8 +105,12 @@ class ElliptecRotator:
 
         if new_delta > ANGLE_RANGE.max:
             correction = Angle(-OUT_OF_RANGE_RELATIVE_ANGLE)
-        else:  
+            print("corrected max")
+        elif new_delta < ANGLE_RANGE.min:
             correction = OUT_OF_RANGE_RELATIVE_ANGLE
+            print("corrected min")
+        else:
+            correction = Angle(0)
 
         self._move_relative(correction)
 
