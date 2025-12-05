@@ -10,7 +10,7 @@ Set-Location $repoRoot
 # 32-bit acquisition venv (lives inside acquisition/)
 $acqVenvPath          = Join-Path $repoRoot "acquisition\.venv32"
 $acqRequirementsFile  = Join-Path $repoRoot "acquisition\_requirements_acquisition.txt"
-$acqPythonSpec        = "-3.9-32"   # 32-bit Python, adjust if needed
+$acqPythonSpec        = "-3.13-32"   # 32-bit Python, adjust if needed
 
 # 64-bit phase_control / analysis venv (lives inside phase_control/)
 $phaseVenvPath        = Join-Path $repoRoot "phase_control\.venv64"
