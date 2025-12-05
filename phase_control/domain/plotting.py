@@ -2,9 +2,9 @@ from typing import Optional
 from matplotlib.axes import Axes
 
 from base_lib.models import Prefix
-from phase_control.domain.models import Spectrogram
+from phase_control.domain.models import Spectrum
 
-def plot_spectrogram(ax: Axes, spec: Spectrogram, label: Optional[str] = None) -> None:
+def plot_spectrogram(ax: Axes, spec: Spectrum, label: Optional[str] = None) -> None:
     
     wavelengths_nm = [w.value(Prefix.NANO) for w in spec.wavelengths]
 

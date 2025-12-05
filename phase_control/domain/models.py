@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from base_lib.models import Length, Prefix
 
 @dataclass
-class Spectrogram:
+class Spectrum:
     wavelengths: list[Length]
     intensity: list[float]
 
@@ -13,7 +13,7 @@ class Spectrogram:
         cls,
         wavelengths: list[float],
         counts: list[int],
-    ) -> Spectrogram: 
+    ) -> Spectrum: 
         total = sum(counts)
         if total == 0:
             raise ValueError("counts should not be 0.")

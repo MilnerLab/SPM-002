@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from phase_control.domain.models import Spectrogram
+from phase_control.domain.models import Spectrum
 
 from .models import StreamFrame, StreamMeta
 
@@ -28,7 +28,7 @@ class FrameBuffer:
         with self._lock:
             self._latest = frame
 
-    def get_latest(self) -> Spectrogram:
+    def get_latest(self) -> Spectrum:
         """
         Return the most recent frame, or None if no frame has been stored yet.
         """
@@ -37,9 +37,9 @@ class FrameBuffer:
         with self._lock:
             return self._generate_Spectrogram(self._latest)
 
-    def _generate_Spectrogram(self, frame: StreamFrame) -> Spectrogram:
+    def _generate_Spectrogram(self, frame: StreamFrame) -> Spectrum:
         if self.meta.wavelengths is not None:
-            return Spectrogram.from_raw_data(self.meta.wavelengths, frame.counts)
+            return Spectrum.from_raw_data(self.meta.wavelengths, frame.counts)
         else:
             raise ValueError("Wavelengths not readable.")
         

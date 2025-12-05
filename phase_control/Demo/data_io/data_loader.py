@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import List
 
-from phase_control.domain.models import Spectrogram
+from phase_control.domain.models import Spectrum
 
-def load_spectrograms(path: str | Path) -> List[Spectrogram]:
+def load_spectra(path: str | Path) -> List[Spectrum]:
     """
     Read the spectrum text file and return a list of Spectrogram instances.
     Each data row (after the header) becomes one Spectrogram.
@@ -21,7 +21,7 @@ def load_spectrograms(path: str | Path) -> List[Spectrogram]:
         # Columns 0–2: Date, Time, Exposure (ms)
         wavelength_values = [float(c) for c in header_cols[3:]]
 
-        spectrograms: List[Spectrogram] = []
+        spectrograms: List[Spectrum] = []
 
         # 3) Each remaining line is one spectrum
         for line in f:
@@ -41,7 +41,7 @@ def load_spectrograms(path: str | Path) -> List[Spectrogram]:
                 raise ValueError("Should be the same size.")
 
             spectrograms.append(
-                Spectrogram.from_raw_data(wavelength_values, count_values)
+                Spectrum.from_raw_data(wavelength_values, count_values)
             )
 
     return spectrograms
