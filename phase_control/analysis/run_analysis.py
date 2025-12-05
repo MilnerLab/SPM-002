@@ -63,7 +63,8 @@ def run_analysis(
             phase_tracker.update(current_spectrum)
 
             if first:
-                line3.set_ydata(current_spectrum.intensity)
+                phase_tracker._config.phase = Angle(0)
+                line3.set_ydata(usCFG_projection(current_spectrum.wavelengths_nm, **phase_tracker._config.to_fit_kwargs(usCFG_projection)))
                 first = False
 
     

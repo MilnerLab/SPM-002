@@ -5,7 +5,7 @@ from base_lib.models import Angle, AngleUnit, Range
 
 # === Konstanten ===
 ANGLE_RANGE = Range(Angle(-90, AngleUnit.DEG), Angle(90, AngleUnit.DEG))
-OUT_OF_RANGE_RELATIVE_ANGLE = Angle(45, AngleUnit.DEG)
+OUT_OF_RANGE_RELATIVE_ANGLE = Angle(90, AngleUnit.DEG)
 HOME_ANGLE = Angle(0, AngleUnit.DEG)
 
 # === DLL laden ===
@@ -23,31 +23,31 @@ class ElliptecRotator:
         self._device = None
         self._ell_devices = None
 
-        self._delta_angle: Angle = Angle(0, AngleUnit.DEG)
+        self._current_angle: Angle = Angle(0, AngleUnit.DEG)
 
         self._initialize(port, min_address, max_address)
 
 
     @property
     def delta_angle(self) -> Angle:
-        return self._delta_angle
+        return self._current_angle
 
     def rotate(self, angle: Angle) -> None:
         
         if float(angle) == 0.0:
             return
 
-        proposed_delta = Angle(self._delta_angle + angle)
+        new_angle = Angle(self._current_angle + angle)
 
-        self._validate_new_delta_angle(proposed_delta)
+        self._validate_new_delta_angle(new_angle)
         self._move_relative(angle)
 
-        self._delta_angle = Angle(self._delta_angle + angle)
+        self._current_angle = Angle(self._current_angle + angle)
 
     def home(self) -> None:
         self._device.Home(ELLBaseDevice.DeviceDirection.Linear)
         time.sleep(1.0)
-        self._delta_angle = Angle(0, AngleUnit.DEG)
+        self._current_angle = Angle(0, AngleUnit.DEG)
 
     def close(self) -> None:
         try:
@@ -91,27 +91,26 @@ class ElliptecRotator:
         print("Device homed.")
 
         # Startzustand: delta = 0
-        self._delta_angle = Angle(0, AngleUnit.DEG)
+        self._current_angle = Angle(0, AngleUnit.DEG)
 
     def _move_relative(self, angle: Angle) -> None:
         d = Decimal(angle.Deg)
         self._device.MoveRelative(d)
+        self._current_angle = Angle(self._current_angle + angle)
         time.sleep(2.0)
 
-    def _validate_new_delta_angle(self, new_delta: Angle) -> None:
+    def _validate_new_delta_angle(self, new_angle: Angle) -> None:
         
-        if ANGLE_RANGE.is_in_range(new_delta):
+        if ANGLE_RANGE.is_in_range(new_angle):
             return
 
-        if new_delta > ANGLE_RANGE.max:
+        if new_angle > ANGLE_RANGE.max:
             correction = Angle(-OUT_OF_RANGE_RELATIVE_ANGLE)
             print("corrected max")
-        elif new_delta < ANGLE_RANGE.min:
+        else:
             correction = OUT_OF_RANGE_RELATIVE_ANGLE
             print("corrected min")
-        else:
-            correction = Angle(0)
 
         self._move_relative(correction)
 
-        self._delta_angle = Angle(self._delta_angle + correction)
+        
