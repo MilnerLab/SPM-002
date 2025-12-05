@@ -62,11 +62,12 @@ def run_analysis(
 
             phase_tracker.update(current_spectrum)
 
+            '''
             if first:
                 phase_tracker._config.phase = Angle(0)
                 line3.set_ydata(usCFG_projection(current_spectrum.wavelengths_nm, **phase_tracker._config.to_fit_kwargs(usCFG_projection)))
                 first = False
-
+'''
     
             if phase_tracker.current_phase is None:
                 raise ValueError("Should have a value.")

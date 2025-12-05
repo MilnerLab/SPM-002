@@ -17,7 +17,7 @@ class PhaseCorrector:
         
         if np.abs(Angle(phase - STARTING_PHASE)) > Angle(10, AngleUnit.DEG):
             _correction_phase = Angle(phase - STARTING_PHASE)
-            print("Correction needed!")
+            print("Correction needed!", _correction_phase.Deg)
         else:
             _correction_phase = Angle(0)
             
