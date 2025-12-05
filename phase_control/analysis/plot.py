@@ -22,10 +22,10 @@ def run_plot(
     """
     # X-axis from wavelengths if available, otherwise pixel indices
     if buffer.meta.wavelengths is not None:
-        x = np.array(meta.wavelengths, dtype=float)
+        x = np.array(buffer.meta.wavelengths, dtype=float)
         x_label = "Wavelength [nm]"
     else:
-        x = np.arange(meta.num_pixels, dtype=float)
+        x = np.arange(buffer.meta.num_pixels, dtype=float)
         x_label = "Pixel"
 
     # Matplotlib setup
@@ -38,8 +38,8 @@ def run_plot(
     ax.set_xlabel(x_label)
     ax.set_ylabel("Counts")
     ax.set_title(
-        f"Live spectrum (Device {meta.device_index}, "
-        f"{meta.exposure_ms:.1f} ms, avg={meta.average})"
+        f"Live spectrum (Device {buffer.meta.device_index}, "
+        f"{buffer.meta.exposure_ms:.1f} ms, avg={buffer.meta.average})"
     )
 
     fig.tight_layout()
@@ -56,7 +56,7 @@ def run_plot(
                 time.sleep(0.01)
                 continue
 
-            y = np.asarray(frame.counts, dtype=float)
+            y = np.asarray(frame.intensity, dtype=float)
             if y.size != x.size:
                 # Safety check – skip malformed frames
                 time.sleep(0.01)
